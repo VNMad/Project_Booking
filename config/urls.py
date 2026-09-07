@@ -13,4 +13,5 @@ urlpatterns = [
     path("api/statistics/", include("apps.statistic.urls")),
 ]
 
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG and not settings.USE_S3:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

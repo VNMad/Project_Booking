@@ -29,6 +29,7 @@ SECRET_KEY = env("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG")
+USE_S3 = env.bool("USE_S3")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
@@ -42,6 +43,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
+    "storages",
 
     'django_filters',
     'drf_spectacular',
@@ -105,8 +108,8 @@ SPECTACULAR_SETTINGS = {
 }
 from datetime import timedelta
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIVERY': timedelta(minutes=30),
-    'REFRESH_TOKEN_LIVERY': timedelta(days=1),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
     'ROTATE_REFRESH_TOKENS': True,
     'BLACKLIST_AFTER_ROTATION': True,
 }
@@ -173,8 +176,6 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.1/howto/static-files/
 
 STATIC_URL = 'static/'
-MEDIA_URL = "/media/"
-MEDIA_ROOT = BASE_DIR / "media"
 
 
 # Email
@@ -186,4 +187,13 @@ MAILERS = {
     },
 }
 
+STORAGES = {"staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
+
+if USE_S3:
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
+else:
+    STORAGES["default"] = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+
+    MEDIA_URL = "/media/"
+    MEDIA_ROOT = BASE_DIR / "media"
 
