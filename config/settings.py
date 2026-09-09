@@ -45,17 +45,20 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
 
     "storages",
+    "simple_history",
 
     'django_filters',
     'drf_spectacular',
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
+    'djmoney',
 
     "apps.listings",
     "apps.bookings",
     "apps.reviews",
     "apps.users",
     "apps.statistic",
+    "core",
 ]
 
 MIDDLEWARE = [
@@ -64,8 +67,10 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'simple_history.middleware.HistoryRequestMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -120,15 +125,22 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.1/ref/settings/#databases
 
-if env.bool("MYSQL"):
+if env.bool("MYSQL", default=False):
+    prefix = "MYSQL_"
+elif env.bool("POSTGRES", default=False):
+    prefix = "POSTGRES_"
+else:
+    prefix = None
+
+if prefix:
     DATABASES = {
         "default": {
-            "ENGINE": "django.db.backends.mysql",
-            "NAME": env("MYSQL_NAME"),
-            "USER": env("MYSQL_USER"),
-            "PASSWORD": env("MYSQL_PASSWORD"),
-            "HOST": env("MYSQL_HOST"),
-            "PORT": env("MYSQL_PORT"),
+            "ENGINE": env(f"{prefix}ENGINE"),
+            "NAME": env(f"{prefix}NAME"),
+            "USER": env(f"{prefix}USER"),
+            "PASSWORD": env(f"{prefix}PASSWORD"),
+            "HOST": env(f"{prefix}HOST"),
+            "PORT": env(f"{prefix}PORT"),
         }
     }
 else:
@@ -139,7 +151,7 @@ else:
         }
     }
 
-AUTH_USER_MODEL = "users.User"
+AUTH_USER_MODEL = "users.Booking_User"
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
