@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from core.models import TimeStampedModel, UniqueID
 
 
 class BookingUserManager(UserManager):
@@ -21,7 +22,7 @@ class BookingUserManager(UserManager):
 
         return self.create_user(email=email, password=password, **extra_fields)
 
-class Booking_User(AbstractUser):
+class Booking_User(UniqueID, TimeStampedModel, AbstractUser):
     username = None
 
     first_name = models.CharField(max_length=25, verbose_name=_("First name"))
