@@ -20,22 +20,17 @@ class BookingCreateSerializer(serializers.ModelSerializer):
 
         if date_start >= date_end:
             raise serializers.ValidationError({"date_end": ("Check-out must be later than check-in.")})
-
         if date_start < now:
             raise serializers.ValidationError({"date_start": ("Booking must start in the future.")})
-
         if date_end > max_date:
             raise serializers.ValidationError({"date_end": ("Booking cannot be more than 1 year in the future.")})
 
         local_start = timezone.localtime(date_start)
         local_end = timezone.localtime(date_end)
-
-        if local_start.time() != time(14, 0):
-            raise serializers.ValidationError({"date_start": ("Check-in time must be exactly 14:00.")})
-
-        if local_end.time() != time(11, 0):
-            raise serializers.ValidationError({"date_end": ("Check-out time must be exactly 11:00.")})
-
+        if not (time(22, 0) <= local_start.time() <= time(14, 0)):
+            raise serializers.ValidationError({"date_start": ("Check-in time must be between 14:00 and 22:00.")})
+        if not (time(7, 0) <= local_end.time() <= time(11, 0)):
+            raise serializers.ValidationError({"date_end": ("Check-out time must be between 07:00 and 11:00.")})
         return attrs
 
 
