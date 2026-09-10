@@ -68,8 +68,8 @@ class Listing(UniqueID, TimeStampedModel):
 class Photo(UniqueID, TimeStampedModel):
 
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="photos", verbose_name=_("Listing"),)
-    image = models.ImageField(upload_to="listings/", verbose_name=_("Image"),)
-    position = models.PositiveIntegerField(default=0, verbose_name=_("Position"))
+    image = models.ImageField(upload_to="listings/", blank=True, verbose_name=_("Image"),)
+    position = models.PositiveIntegerField(default=0, blank=True, verbose_name=_("Position"))
 
     class Meta:
         db_table = "listing_photo"

@@ -23,7 +23,4 @@ class BookingViewSet(viewsets.GenericViewSet):
             date_end=serializer.validated_data["date_end"],
         )
 
-        return Response(
-            BookingSerializer(booking).data,
-            status=status.HTTP_201_CREATED,
-        )
+        return Response(BookingSerializer(booking).data, status=status.HTTP_201_CREATED)
