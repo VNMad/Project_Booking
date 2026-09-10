@@ -22,7 +22,7 @@ class BookingUserManager(UserManager):
 
         return self.create_user(email=email, password=password, **extra_fields)
 
-class Booking_User(UniqueID, TimeStampedModel, AbstractUser):
+class Booking_User(TimeStampedModel, AbstractUser):
     username = None
 
     first_name = models.CharField(max_length=25, verbose_name=_("First name"))
