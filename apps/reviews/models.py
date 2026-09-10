@@ -26,8 +26,8 @@ class Review(UniqueID, TimeStampedModel):
 
         indexes = [
             models.Index(
-                fields=["location_rating"],
-                name="review_location_rating_at_idx",
+                fields=["comment"],
+                name="review_comment_at_idx",
             ),
         ]
 
