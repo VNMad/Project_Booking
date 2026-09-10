@@ -27,7 +27,7 @@ class Booking_User(TimeStampedModel, AbstractUser):
 
     first_name = models.CharField(max_length=25, verbose_name=_("First name"))
     last_name = models.CharField(max_length=25, verbose_name=_("Last name"))
-    email = models.EmailField(unique=True, verbose_name=_("Email"))
+    email = models.EmailField(unique=True, max_length=255, verbose_name=_("Email"))
     phone = models.CharField(max_length=20, verbose_name=_("Phone"))
 
     USERNAME_FIELD = "email"
