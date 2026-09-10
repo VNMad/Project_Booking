@@ -7,6 +7,7 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db.models import Q
 
+from core.models import BookingStatus
 from .permissions import IsOwnerOrReadOnly, ModelPermissions
 from .models import Listing
 from .serializers import ListingSerializer
@@ -31,6 +32,9 @@ class ListingViewSet(viewsets.ModelViewSet):
         listing = self.get_object()
         if listing.deleted_at is not None:
             return Response({"detail": "Listing is already deleted."}, status=status.HTTP_400_BAD_REQUEST)
+        if listing.bookings.filter(status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED]).exists():
+            return Response({"detail": "Listing cannot be deleted because it has active."},
+                            status=status.HTTP_400_BAD_REQUEST)
         listing.is_active = False
         listing.deleted_at = timezone.now()
         listing.save(update_fields=["is_active", "deleted_at"])

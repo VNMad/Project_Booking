@@ -26,6 +26,9 @@ class Booking(UniqueID, TimeStampedModel):
     snapshot_street = models.CharField(max_length=150, verbose_name=_("Street"),)
     snapshot_house_number = models.CharField(max_length=20, verbose_name=_("House number"),)
     snapshot_apartment_number = models.CharField(max_length=20, verbose_name=_("Apartment number"),)
+    snapshot_first_name = models.CharField(max_length=150, verbose_name=_("Tenant first name"),)
+    snapshot_last_name = models.CharField(max_length=150, verbose_name=_("Tenant last name"),)
+    snapshot_email = models.EmailField(verbose_name=_("Tenant email"),)
     snapshot_price_per_night = MoneyField(max_digits=10, decimal_places=2, default_currency="EUR",
                                  verbose_name=_("Price per night"),)
     status = models.CharField(max_length=20, choices=BookingStatus, default=BookingStatus.PENDING,

@@ -37,6 +37,9 @@ def create_booking(*, tenant, listing_id, date_start, date_end):
             snapshot_street=listing.street,
             snapshot_house_number=listing.house_number,
             snapshot_apartment_number=listing.apartment_number,
+            snapshot_first_name=tenant.first_name,
+            snapshot_last_name=tenant.last_name,
+            snapshot_email=tenant.email,
             snapshot_price_per_night=listing.price_per_night,
             status=BookingStatus.PENDING,
         )
