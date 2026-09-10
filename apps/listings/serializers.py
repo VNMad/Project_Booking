@@ -11,6 +11,7 @@ class PhotoSerializer(serializers.ModelSerializer):
 
 
 class ListingSerializer(serializers.ModelSerializer):
+    photos = PhotoSerializer(many=True, required=False)
     class Meta:
         model = Listing
         fields = [
@@ -25,6 +26,7 @@ class ListingSerializer(serializers.ModelSerializer):
             "apartment_number",
             "price_per_night",
             "rooms",
+            "photos",
             "is_active",
             "deleted_at",
             "created_at",
