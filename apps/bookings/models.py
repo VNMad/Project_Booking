@@ -33,13 +33,13 @@ class Booking(UniqueID, TimeStampedModel):
 
     history = HistoricalRecords()
 
-    def clean(self):
-        if self.date_start and self.date_end and self.date_start >= self.date_end:
-            raise ValidationError({"date_end": _("Check-out must be later than check-in.")})
-
-    def save(self, *args, **kwargs):
-        self.full_clean()
-        super().save(*args, **kwargs)
+    # def clean(self):
+    #     if self.date_start and self.date_end and self.date_start >= self.date_end:
+    #         raise ValidationError({"date_end": _("Check-out must be later than check-in.")})
+    #
+    # def save(self, *args, **kwargs):
+    #     self.full_clean()
+    #     super().save(*args, **kwargs)
 
     class Meta:
         db_table = "booking"
@@ -67,4 +67,4 @@ class Booking(UniqueID, TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"{self.property_title} - {self.date_start:%Y-%m-%d}"
+        return f"{self.snapshot_title} - {self.date_start:%Y-%m-%d}"

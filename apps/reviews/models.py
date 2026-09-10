@@ -32,4 +32,4 @@ class Review(UniqueID, TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"Review for {self.booking.snapshot_title}"
+        return f"Review for {self.booking_id}"
