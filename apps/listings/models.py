@@ -69,16 +69,17 @@ class Photo(UniqueID, TimeStampedModel):
 
     listing = models.ForeignKey(Listing, on_delete=models.CASCADE, related_name="photos", verbose_name=_("Listing"),)
     image = models.ImageField(upload_to="listings/", verbose_name=_("Image"),)
+    position = models.PositiveIntegerField(default=0, verbose_name=_("Position"))
 
     class Meta:
         db_table = "listing_photo"
         verbose_name = _("Photo")
         verbose_name_plural = _("Photos")
-        ordering = ["created_at"]
+        ordering = ["position", "created_at"]
         indexes = [
             models.Index(
-                fields=["listing", "created_at"],
-                name="photo_listing_created_idx",
+                fields=["listing", "position"],
+                name="photo_listing_position_idx",
             ),
         ]
 

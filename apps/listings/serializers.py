@@ -1,6 +1,13 @@
 from rest_framework import serializers
 
-from .models import Listing
+from .models import Listing, Photo
+
+
+class PhotoSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Photo
+        fields = ["id", "image", "position", "created_at"]
+        read_only_fields = ["id", "created_at"]
 
 
 class ListingSerializer(serializers.ModelSerializer):
