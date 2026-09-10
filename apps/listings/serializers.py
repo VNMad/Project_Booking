@@ -8,7 +8,6 @@ class ListingSerializer(serializers.ModelSerializer):
         model = Listing
         fields = [
             "id",
-            "owner",
             "title",
             "description",
             "country",
@@ -26,7 +25,6 @@ class ListingSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "owner",
             "is_active",
             "deleted_at",
             "created_at",

@@ -39,7 +39,6 @@ class BookingSerializer(serializers.ModelSerializer):
         model = Booking
         fields = [
             "id",
-            "tenant",
             "listing",
             "date_start",
             "date_end",
@@ -57,7 +56,6 @@ class BookingSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
-            "tenant",
             "snapshot_title",
             "snapshot_country",
             "snapshot_city",
