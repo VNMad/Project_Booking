@@ -83,4 +83,4 @@ class Photo(UniqueID, TimeStampedModel):
         ]
 
     def __str__(self):
-        return f"Photo for {self.listing.title}"
+        return f"Photo for {self.listing_id}"
