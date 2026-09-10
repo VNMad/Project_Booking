@@ -151,7 +151,7 @@ else:
         }
     }
 
-AUTH_USER_MODEL = "users.Booking_User"
+AUTH_USER_MODEL = "users.BookingUser"
 
 # Password validation
 # https://docs.djangoproject.com/en/6.1/ref/settings/#auth-password-validators
