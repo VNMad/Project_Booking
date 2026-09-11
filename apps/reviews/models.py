@@ -24,12 +24,6 @@ class Review(UniqueID, TimeStampedModel):
         verbose_name_plural = _("Reviews")
         ordering = ["-created_at"]
 
-        indexes = [
-            models.Index(
-                fields=["comment"],
-                name="review_comment_at_idx",
-            ),
-        ]
 
     def __str__(self):
         return f"Review for {self.booking_id}"

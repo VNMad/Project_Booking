@@ -45,3 +45,33 @@ def create_booking(*, tenant, listing_id, date_start, date_end):
         )
 
         return booking
+
+
+def confirm_booking(*, booking_id, owner):
+    booking = Booking.objects.select_related("listing").get(pk=booking_id)
+
+    if booking.listing.owner_id != owner.id:
+        raise ValidationError(_("Only the listing owner can confirm this booking."))
+
+    if booking.status != BookingStatus.PENDING:
+        raise ValidationError(_("Only pending bookings can be confirmed."))
+
+    booking.status = BookingStatus.CONFIRMED
+    booking.save(update_fields=["status", "updated_at"])
+
+    return booking
+
+
+def reject_booking(*, booking_id, owner):
+    booking = Booking.objects.select_related("listing").get(pk=booking_id)
+
+    if booking.listing.owner_id != owner.id:
+        raise ValidationError(_("Only the listing owner can reject this booking."))
+
+    if booking.status != BookingStatus.PENDING:
+        raise ValidationError(_("Only pending bookings can be rejected."))
+
+    booking.status = BookingStatus.REJECTED
+    booking.save(update_fields=["status", "updated_at"])
+
+    return booking
