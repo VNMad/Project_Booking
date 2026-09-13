@@ -110,3 +110,10 @@ def cancel_booking(*, booking_id, tenant):
     booking.save(update_fields=["status", "updated_at"])
 
     return booking
+
+def complete_booking_if_finished(booking):
+    if booking.status == BookingStatus.CONFIRMED and booking.date_end < timezone.now():
+        booking.status = BookingStatus.COMPLETED
+        booking.save(update_fields=["status", "updated_at"])
+
+    return booking
