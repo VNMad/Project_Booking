@@ -4,6 +4,12 @@ from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 
 
+
+def validate_positive_price(value):
+    if value.amount < 0:
+        raise ValidationError("Price per night cannot be negative.")
+
+
 def validate_password(value):
     if not re.fullmatch(
             r'(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}',

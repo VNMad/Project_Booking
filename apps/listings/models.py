@@ -5,6 +5,7 @@ from simple_history.models import HistoricalRecords
 from djmoney.models.fields import MoneyField
 
 from core.models import EuropeanCountry, RoomCount, TimeStampedModel, UniqueID
+from core.validators import validate_positive_price
 
 
 class Listing(UniqueID, TimeStampedModel):
@@ -19,8 +20,8 @@ class Listing(UniqueID, TimeStampedModel):
     street = models.CharField(max_length=150, verbose_name=_("Street"),)
     house_number = models.CharField(max_length=20, verbose_name=_("House number"),)
     apartment_number = models.CharField(max_length=20, verbose_name=_("Apartment number"),)
-    price_per_night = MoneyField(max_digits=10, decimal_places=2,
-                                 default_currency="EUR", verbose_name=_("Price per night"),)
+    price_per_night = MoneyField(max_digits=10, decimal_places=2, default_currency="EUR",
+                                 validators=[validate_positive_price],verbose_name=_("Price per night"),)
     rooms = models.CharField(max_length=2, choices=RoomCount, verbose_name=_("Rooms"),)
     is_active = models.BooleanField(default=True, verbose_name=_("Active"),)
     deleted_at = models.DateTimeField(null=True, blank=True, verbose_name=_("Deleted at"),)
@@ -76,12 +77,14 @@ class Photo(UniqueID, TimeStampedModel):
         verbose_name = _("Photo")
         verbose_name_plural = _("Photos")
         ordering = ["position", "created_at"]
-        indexes = [
-            models.Index(
+        constraints = [models.UniqueConstraint(
+                fields=["listing", "position"],
+                name="unique_photo_position",
+                ),]
+        indexes = [models.Index(
                 fields=["listing", "position"],
                 name="photo_listing_position_idx",
-            ),
-        ]
+                ),]
 
     def __str__(self):
         return f"Photo for {self.listing_id}"
