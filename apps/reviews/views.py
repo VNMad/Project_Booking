@@ -6,12 +6,13 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Review
+from .permissions import IsReviewOwner
 from .serializers import ReviewSerializer
 from .services import create_review
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsReviewOwner]
     serializer_class = ReviewSerializer
 
     def get_queryset(self):
