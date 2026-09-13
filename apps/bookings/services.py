@@ -1,11 +1,17 @@
+from datetime import timedelta
 from django.core.exceptions import ValidationError
 from django.db import transaction
+from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.models import BookingStatus
 from apps.listings.models import Listing
 
 from .models import Booking
+
+
+class BookingNotFoundError(Exception):
+    pass
 
 
 def create_booking(*, tenant, listing_id, date_start, date_end):
@@ -21,7 +27,6 @@ def create_booking(*, tenant, listing_id, date_start, date_end):
         booking_exists = Booking.objects.filter(
             listing=listing, status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED],
             date_start__lt=date_end, date_end__gt=date_start).exists()
-
         if booking_exists:
             raise ValidationError(_("The listing is already booked for these dates."))
 
@@ -48,7 +53,10 @@ def create_booking(*, tenant, listing_id, date_start, date_end):
 
 
 def confirm_booking(*, booking_id, owner):
-    booking = Booking.objects.select_related("listing").get(pk=booking_id)
+    try:
+        booking = Booking.objects.select_related("listing").get(pk=booking_id)
+    except Booking.DoesNotExist:
+        raise BookingNotFoundError(_("Booking does not exist."))
 
     if booking.listing.owner_id != owner.id:
         raise ValidationError(_("Only the listing owner can confirm this booking."))
@@ -63,7 +71,10 @@ def confirm_booking(*, booking_id, owner):
 
 
 def reject_booking(*, booking_id, owner):
-    booking = Booking.objects.select_related("listing").get(pk=booking_id)
+    try:
+        booking = Booking.objects.select_related("listing").get(pk=booking_id)
+    except Booking.DoesNotExist:
+        raise BookingNotFoundError(_("Booking does not exist."))
 
     if booking.listing.owner_id != owner.id:
         raise ValidationError(_("Only the listing owner can reject this booking."))
@@ -72,6 +83,30 @@ def reject_booking(*, booking_id, owner):
         raise ValidationError(_("Only pending bookings can be rejected."))
 
     booking.status = BookingStatus.REJECTED
+    booking.save(update_fields=["status", "updated_at"])
+
+    return
+
+
+def cancel_booking(*, booking_id, tenant):
+    try:
+        booking = Booking.objects.select_related("listing").get(pk=booking_id)
+    except Booking.DoesNotExist:
+        raise BookingNotFoundError(_("Booking does not exist."))
+
+    if booking.tenant_id != tenant.id:
+        raise ValidationError(_("Only the tenant who created the booking can cancel it."))
+
+    if booking.status != BookingStatus.PENDING:
+        raise ValidationError(_("Only pending bookings can be cancelled."))
+
+    now = timezone.now()
+    cancellation_deadline = booking.date_start - timedelta(days=1)
+
+    if now > cancellation_deadline:
+        raise ValidationError(_("Booking can only be cancelled at least 24 hours before check-in."))
+
+    booking.status = BookingStatus.CANCELLED
     booking.save(update_fields=["status", "updated_at"])
 
     return booking
