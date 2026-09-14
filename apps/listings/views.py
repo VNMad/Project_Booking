@@ -1,17 +1,18 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import status, viewsets
+from rest_framework import status, viewsets, serializers
 #from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
+from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
 from django.utils import timezone
 from django.db.models import Q
 
 from core.models import BookingStatus
-from core.constants import LISTING_SOFT_DELETE_DAYS
+from core.constants import LISTING_SOFT_DELETE_DAYS, LISTING_MAX_PHOTOS
 from .permissions import IsOwnerOrReadOnly, ModelPermissions
-from .models import Listing
-from .serializers import ListingSerializer
+from .models import Listing, Photo
+from .serializers import ListingSerializer, PhotoSerializer
 
 
 
@@ -75,3 +76,22 @@ class ListingViewSet(viewsets.ModelViewSet):
             return Listing.objects.filter(is_active=True)
 
         return Listing.objects.filter(Q(is_active=True) | Q(owner=user, deleted_at__gte=restore_limit))
+
+
+class PhotoViewSet(viewsets.ModelViewSet):
+    serializer_class = PhotoSerializer
+    permission_classes = [IsOwnerOrReadOnly]
+
+    def get_queryset(self):
+        return Photo.objects.select_related("listing").all()
+
+    def perform_create(self, serializer):
+        listing = serializer.validated_data["listing"]
+
+        if listing.owner_id != self.request.user.id:
+            raise PermissionDenied("You can add photos only to your own listing.")
+
+        if listing.photos.count() >= LISTING_MAX_PHOTOS:
+            raise serializers.ValidationError(f"A listing cannot have more than {LISTING_MAX_PHOTOS} photos.")
+
+        serializer.save()

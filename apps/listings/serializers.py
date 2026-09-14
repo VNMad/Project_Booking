@@ -5,9 +5,10 @@ from core.constants import LISTING_MAX_PHOTOS
 
 
 class PhotoSerializer(serializers.ModelSerializer):
+    position = serializers.IntegerField(min_value=1)
     class Meta:
         model = Photo
-        fields = ["id", "image", "position", "created_at"]
+        fields = ["id", "listing", "image", "position", "created_at"]
         read_only_fields = ["id", "created_at"]
 
 
