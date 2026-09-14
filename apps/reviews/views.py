@@ -1,8 +1,6 @@
 from django.core.exceptions import ValidationError as DjangoValidationError
 
 from rest_framework import serializers, status, viewsets
-from rest_framework.exceptions import NotFound
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Review
@@ -12,12 +10,10 @@ from .services import create_review
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated, IsReviewOwner]
-    #serializer_class = ReviewSerializer
+    permission_classes = [IsReviewOwner]
 
     def get_queryset(self):
-        user = self.request.user
-        return Review.objects.filter(booking__tenant=user).select_related("booking")
+        return Review.objects.select_related("booking")
 
     def get_serializer_class(self):
         if self.action == "create":

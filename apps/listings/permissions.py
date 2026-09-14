@@ -12,7 +12,10 @@ class IsOwnerOrReadOnly(BasePermission):
         if request.method in SAFE_METHODS:
             return True
 
-        return obj.owner_id == request.user.id
+        if hasattr(obj, "owner_id"):
+            return obj.owner_id == request.user.id
+
+        return obj.listing.owner_id == request.user.id
 
 
 class ModelPermissions(DjangoModelPermissions):
