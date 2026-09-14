@@ -8,6 +8,7 @@ from django.utils import timezone
 from django.db.models import Q
 
 from core.models import BookingStatus
+from core.constants import LISTING_SOFT_DELETE_DAYS
 from .permissions import IsOwnerOrReadOnly, ModelPermissions
 from .models import Listing
 from .serializers import ListingSerializer
@@ -46,7 +47,7 @@ class ListingViewSet(viewsets.ModelViewSet):
         listing = self.get_object()
         if listing.deleted_at is None:
             return Response({"detail": "This listing is not deleted."}, status=status.HTTP_400_BAD_REQUEST)
-        if listing.deleted_at < timezone.now() - timedelta(days=180):
+        if listing.deleted_at < timezone.now() - timedelta(days=LISTING_SOFT_DELETE_DAYS):
             return Response({"detail": "The restoration period has expired."}, status=status.HTTP_400_BAD_REQUEST)
 
         listing.is_active = True
@@ -69,5 +70,8 @@ class ListingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
-        restore_limit = timezone.now() - timedelta(days=180)
+        restore_limit = timezone.now() - timedelta(days=LISTING_SOFT_DELETE_DAYS)
+        if not user.is_authenticated:
+            return Listing.objects.filter(is_active=True)
+
         return Listing.objects.filter(Q(is_active=True) | Q(owner=user, deleted_at__gte=restore_limit))

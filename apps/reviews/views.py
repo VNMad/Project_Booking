@@ -7,17 +7,22 @@ from rest_framework.response import Response
 
 from .models import Review
 from .permissions import IsReviewOwner
-from .serializers import ReviewSerializer
+from .serializers import ReviewSerializer, ReviewCreateSerializer
 from .services import create_review
 
 
 class ReviewViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated, IsReviewOwner]
-    serializer_class = ReviewSerializer
+    #serializer_class = ReviewSerializer
 
     def get_queryset(self):
         user = self.request.user
         return Review.objects.filter(booking__tenant=user).select_related("booking")
+
+    def get_serializer_class(self):
+        if self.action == "create":
+            return ReviewCreateSerializer
+        return ReviewSerializer
 
     def _handle_service_error(self, exc):
         if isinstance(exc, DjangoValidationError):
@@ -25,7 +30,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
         raise exc
 
     def create(self, request):
-        serializer = ReviewSerializer(data=request.data)
+        serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         try:

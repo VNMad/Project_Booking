@@ -2,6 +2,16 @@ from rest_framework import serializers
 from .models import Review
 
 
+class ReviewCreateSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = [
+            "booking",
+            "cleanliness_rating",
+            "location_rating",
+            "comment",
+        ]
+
 class ReviewSerializer(serializers.ModelSerializer):
 
     class Meta:

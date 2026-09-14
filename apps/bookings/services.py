@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 
 from core.models import BookingStatus
+from core.constants import BOOKING_CANCELLATION_DEADLINE_HOURS
 from apps.listings.models import Listing
 
 from .models import Booking
@@ -101,10 +102,11 @@ def cancel_booking(*, booking_id, tenant):
         raise ValidationError(_("Only pending bookings can be cancelled."))
 
     now = timezone.now()
-    cancellation_deadline = booking.date_start - timedelta(days=1)
+    cancellation_deadline = booking.date_start - timedelta(hours=BOOKING_CANCELLATION_DEADLINE_HOURS)
 
     if now > cancellation_deadline:
-        raise ValidationError(_("Booking can only be cancelled at least 24 hours before check-in."))
+        raise ValidationError(_("Booking can only be cancelled at least {hours} hours before check-in.").format(
+                                 hours=BOOKING_CANCELLATION_DEADLINE_HOURS))
 
     booking.status = BookingStatus.CANCELLED
     booking.save(update_fields=["status", "updated_at"])

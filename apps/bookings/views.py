@@ -9,7 +9,8 @@ from django.core.exceptions import ValidationError as DjangoValidationError
 
 from .models import Booking
 from .serializers import BookingCreateSerializer, BookingSerializer
-from .services import create_booking, confirm_booking, reject_booking, cancel_booking, BookingNotFoundError
+from .services import create_booking, confirm_booking, reject_booking, cancel_booking, BookingNotFoundError, \
+    complete_booking_if_finished
 
 
 class BookingViewSet(viewsets.ModelViewSet):
@@ -46,6 +47,7 @@ class BookingViewSet(viewsets.ModelViewSet):
 
     def retrieve(self, request, pk=None):
         booking = self.get_object()
+        booking = complete_booking_if_finished(booking)
         serializer = BookingSerializer(booking)
         return Response(serializer.data, status=status.HTTP_200_OK)
 

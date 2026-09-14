@@ -1,6 +1,7 @@
 from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+#from django.core.exceptions import ValidationError
 from simple_history.models import HistoricalRecords
 from djmoney.models.fields import MoneyField
 
@@ -85,6 +86,15 @@ class Photo(UniqueID, TimeStampedModel):
                 fields=["listing", "position"],
                 name="photo_listing_position_idx",
                 ),]
+
+    # def clean(self):
+    #     if not self.pk and self.listing_id:
+    #         if self.listing.photos.count() >= LISTING_MAX_PHOTOS:
+    #             raise ValidationError({"image": _("This listing already has the maximum of 10 photos.")})
+    #
+    # def save(self, *args, **kwargs):
+    #     self.full_clean()
+    #     super().save(*args, **kwargs)
 
     def __str__(self):
         return f"Photo for {self.listing_id}"

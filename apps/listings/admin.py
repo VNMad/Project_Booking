@@ -2,11 +2,14 @@ from django.contrib import admin
 from simple_history.admin import SimpleHistoryAdmin
 
 from .models import Listing, Photo
+from core.constants import LISTING_MAX_PHOTOS
 
 
 class PhotoInline(admin.TabularInline):
     model = Photo
     extra = 1
+    max_num = LISTING_MAX_PHOTOS
+    validate_max = True
     fields = ("image", "position")
 
 
