@@ -9,11 +9,33 @@ from core.constants import (BOOKING_MAX_DAYS_AHEAD, BOOKING_CHECK_IN_START, BOOK
 
 
 class BookingCreateSerializer(serializers.ModelSerializer):
+    """
+    Serializer for creating a new booking.
+
+    The client provides the listing and check-in/check-out dates.
+    The tenant, booking status, property snapshot, and tenant snapshot
+    are determined by the server.
+    """
     class Meta:
         model = Booking
-        fields = ["listing", "date_start", "date_end",]
+        fields = ["listing", "date_start", "date_end"]
+        extra_kwargs = {
+            "listing": {"help_text": "Rental listing to be booked."},
+            "date_start": {"help_text": ("Check-in date and time. "
+                                         "The booking must start in the future and "
+                                         "the time must be within the allowed check-in period.")},
+            "date_end": {"help_text": ("Check-out date and time. "
+                                       "The check-out must be later than the check-in "
+                                       "and the time must be within the allowed check-out period.")},
+        }
 
     def validate(self, attrs):
+        """
+        Validate booking dates and allowed check-in/check-out times.
+
+        The booking must start before it ends, start in the future,
+        and not exceed the configured maximum booking horizon.
+        """
         date_start = attrs["date_start"]
         date_end = attrs["date_end"]
 
@@ -42,6 +64,13 @@ class BookingCreateSerializer(serializers.ModelSerializer):
 
 
 class BookingSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying booking information.
+
+    In addition to the booking dates and status, the serializer exposes
+    snapshots of the property and tenant information captured when
+    the booking was created.
+    """
     class Meta:
         model = Booking
         fields = [
@@ -81,3 +110,23 @@ class BookingSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+        extra_kwargs = {
+            "listing": {"help_text": "Rental listing associated with the booking."},
+            "date_start": {"help_text": "Check-in date and time."},
+            "date_end": {"help_text": "Check-out date and time."},
+            "snapshot_title": {"help_text": "Property title captured when the booking was created."},
+            "snapshot_country": {"help_text": "Property country captured when the booking was created."},
+            "snapshot_city": {"help_text": "Property city captured when the booking was created."},
+            "snapshot_district": {"help_text": "Property district captured when the booking was created."},
+            "snapshot_street": {"help_text": "Property street captured when the booking was created."},
+            "snapshot_house_number": {"help_text": "Property house number captured when the booking was created."},
+            "snapshot_apartment_number": {"help_text": (
+                                            "Property apartment number captured when the booking was created.")},
+            "snapshot_first_name": {"help_text": "Tenant first name captured when the booking was created."},
+            "snapshot_last_name": {"help_text": "Tenant last name captured when the booking was created."},
+            "snapshot_email": {"help_text": "Tenant email captured when the booking was created."},
+            "snapshot_price_per_night": {"help_text": "Price per night captured when the booking was created."},
+            "status": {"help_text": "Current status of the booking."},
+            "created_at": {"help_text": "Date and time when the booking was created."},
+            "updated_at": {"help_text": "Date and time when the booking was last updated."},
+        }

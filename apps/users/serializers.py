@@ -9,8 +9,16 @@ User = get_user_model()
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True, min_length=8)
-    email = serializers.EmailField()
+    """
+    Serializer for creating a new user account.
+    The user registers with a first name, last name, email,
+    phone number, and password.
+    """
+    password = serializers.CharField(write_only=True, min_length=8, help_text=(
+            "User password"
+            "It must contain at least 8 characters, one uppercase letter, one lowercase letter,"
+            "one digit and one special character."))
+    email = serializers.EmailField(help_text="User email address. Used as the login identifier.")
 
     class Meta:
         model = User
@@ -21,6 +29,11 @@ class RegisterSerializer(serializers.ModelSerializer):
             "phone",
             "password",
         ]
+        extra_kwargs = {
+            "first_name": {"help_text": "User's first name."},
+            "last_name": {"help_text": "User's last name."},
+            "phone": {"help_text": "User's phone number."},
+        }
 
     def validate_email(self, value):
         value = value.strip().lower()
@@ -50,6 +63,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """
+    Serializer for displaying and updating the authenticated user's profile.
+    Email, account status, and timestamps are read-only.
+    """
 
     class Meta:
         model = User
@@ -68,3 +85,12 @@ class UserSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         ]
+        extra_kwargs = {
+            "first_name": {"help_text": "User's first name."},
+            "last_name": {"help_text": "User's last name."},
+            "email": {"help_text": "User email address. Used as the login identifier."},
+            "phone": {"help_text": "User's phone number."},
+            "is_active": {"help_text": "Indicates whether the user account is active."},
+            "created_at": {"help_text": "Date and time when the user account was created."},
+            "updated_at": {"help_text": "Date and time when the user account was last updated."},
+        }

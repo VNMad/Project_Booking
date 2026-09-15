@@ -1,11 +1,16 @@
 import uuid
 
-from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 
 class UniqueID(models.Model):
+    """
+    Abstract base model that provides a UUID primary key.
+
+    Every model inheriting from UniqueID receives a UUID field named
+    `id`, which is generated automatically when a new object is created.
+    """
     id = models.UUIDField(primary_key=True, editable=False, default=uuid.uuid4, verbose_name=_("UUID id"))
 
     class Meta:
@@ -13,6 +18,12 @@ class UniqueID(models.Model):
 
 
 class TimeStampedModel(models.Model):
+    """
+    Abstract base model that provides creation and update timestamps.
+
+    The created_at field stores when the object was created.
+    The updated_at field stores when the object was last modified.
+    """
     created_at = models.DateTimeField(auto_now_add=True, verbose_name=_("Created at"))
     updated_at = models.DateTimeField(auto_now=True, verbose_name=_("Updated at"))
 
@@ -21,6 +32,9 @@ class TimeStampedModel(models.Model):
 
 
 class RoomCount(models.TextChoices):
+    """
+    Available room-count choices for rental listings.
+    """
     ONE = "1", _("1")
     TWO = "2", _("2")
     THREE = "3", _("3")
@@ -30,6 +44,15 @@ class RoomCount(models.TextChoices):
 
 
 class BookingStatus(models.TextChoices):
+    """
+    Available statuses for a rental booking.
+
+    PENDING: booking has been created and awaits owner confirmation.
+    CONFIRMED: booking has been confirmed by the listing owner.
+    REJECTED: booking has been rejected by the listing owner.
+    CANCELLED: booking has been cancelled by the tenant.
+    COMPLETED: booking period has ended.
+    """
     PENDING = "pending", _("Pending")
     CONFIRMED = "confirmed", _("Confirmed")
     REJECTED = "rejected", _("Rejected")
@@ -38,6 +61,11 @@ class BookingStatus(models.TextChoices):
 
 
 class EuropeanCountry(models.TextChoices):
+    """
+    List of European countries available for rental listings.
+
+    The stored value is the country's two-letter country code.
+    """
     ALBANIA = "AL", _("Albania")
     ANDORRA = "AD", _("Andorra")
     ARMENIA = "AM", _("Armenia")

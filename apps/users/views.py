@@ -17,15 +17,33 @@ from .serializers import RegisterSerializer, UserSerializer
 logger = logging.getLogger(__name__)
 
 class UserViewSet(viewsets.GenericViewSet):
+    """
+    ViewSet for user registration and authenticated user profile management.
+    Provides endpoints for:
+    - registering a new user;
+    - retrieving the current user's profile;
+    - updating the current user's profile;
+    - deactivating the current user's account.
+    """
     permission_classes = [AllowAny]
 
     def get_permissions(self):
+        """
+        Return permissions according to the requested user action.
+        Registration is available to unauthenticated users.
+        Profile operations require authentication.
+        """
         if self.action in ["me", "update_me", "delete_me"]:
             return [IsAuthenticated()]
 
         return [AllowAny()]
 
-    @extend_schema(request=RegisterSerializer, responses=UserSerializer)
+    @extend_schema(request=RegisterSerializer, responses=UserSerializer,
+                   summary="Register a new user",
+                   description=("Create a new user account using an email address, "
+                                "personal information, phone number, and password. "
+                                "The email address is used as the login identifier.")
+                   )
     @action(
         detail=False,
         methods=["post"],
@@ -33,13 +51,19 @@ class UserViewSet(viewsets.GenericViewSet):
         url_name="register",
     )
     def register(self, request):
+        """
+        Register a new user account.
+        Validates the submitted registration data and creates
+        a new user using the custom user manager.
+        """
         serializer = RegisterSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
         return Response(UserSerializer(user).data, status=status.HTTP_201_CREATED)
 
-    @extend_schema(responses=UserSerializer)
+    @extend_schema(responses=UserSerializer, summary="Get current user",
+        description="Return the profile of the currently authenticated user.")
     @action(
         detail=False,
         methods=["get"],
@@ -47,13 +71,17 @@ class UserViewSet(viewsets.GenericViewSet):
         url_name="me",
     )
     def me(self, request):
+        """ Return the currently authenticated user's profile. """
         serializer = UserSerializer(request.user)
 
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @me.mapping.patch
-    @extend_schema(request=UserSerializer, responses=UserSerializer)
+    @extend_schema(request=UserSerializer, responses=UserSerializer, summary="Update current user",
+                   description=("Partially update the profile of the currently authenticated "
+                                "user. Email address, account status, and timestamps are read-only."))
     def update_me(self, request):
+        """ Partially update the currently authenticated user's profile. """
         serializer = UserSerializer(request.user, data=request.data, partial=True)
         serializer.is_valid(raise_exception=True)
         serializer.save()
@@ -61,8 +89,18 @@ class UserViewSet(viewsets.GenericViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
     @me.mapping.delete
-    @extend_schema(responses=None)
+    @extend_schema(responses=None, summary="Deactivate current user account",
+                                   description=("Deactivate the currently authenticated user's account. "
+                                                "The account cannot be deactivated while the user has "
+                                                "pending or confirmed bookings that have not yet ended. "
+                                                "The user's active listings are also deactivated."))
     def delete_me(self, request):
+        """
+        Deactivate the currently authenticated user's account.
+        The account is not physically deleted. The user is marked
+        as inactive and active listings owned by the user are deactivated.
+        Deactivation is rejected when open bookings exist.
+        """
         user = request.user
         now = timezone.now()
 

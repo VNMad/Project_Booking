@@ -14,19 +14,36 @@ from core.models import BookingStatus
 from .serializers import ListingRatingSerializer, ListingStatisticsSerializer
 
 
-@extend_schema_view(
-    retrieve=extend_schema(summary="Get public listing rating",
-        description=("Return public rating statistics for an active rental listing."),
+@extend_schema_view(retrieve=extend_schema(summary="Get public listing rating",
+        description="Return public rating statistics for an active rental listing.",
         responses=ListingRatingSerializer))
 class ListingStatisticsViewSet(viewsets.ViewSet):
+    """
+    ViewSet for retrieving statistics related to rental listings.
+
+    Provides public rating statistics for active listings and
+    private extended statistics for listing owners.
+    """
 
     def get_permissions(self):
+        """
+        Return permissions according to the requested action.
+
+        Public listing rating statistics are available to everyone.
+        Detailed owner statistics require authentication.
+        """
         if self.action == "owner_statistics":
             return [IsAuthenticated()]
 
         return [AllowAny()]
 
     def retrieve(self, request, pk=None):
+        """
+        Return public rating statistics for an active listing.
+
+        The response contains the total number of reviews and
+        separate average ratings for cleanliness and location.
+        """
         try:
             listing = Listing.objects.get(pk=pk, is_active=True, deleted_at__isnull=True)
         except Listing.DoesNotExist:
@@ -52,10 +69,17 @@ class ListingStatisticsViewSet(viewsets.ViewSet):
     @extend_schema(
         summary="Get private listing statistics",
         description=("Return detailed statistics for a rental listing. "
-                    "Only the listing owner can access this endpoint."),
+                     "Only the listing owner can access this endpoint."
+                     "The response includes review and booking statistics."),
         responses=ListingStatisticsSerializer)
     @action(detail=True, methods=["get"], url_path="owner")
     def owner_statistics(self, request, pk=None):
+        """
+        Return detailed statistics for the listing owner.
+
+        Only the owner of the requested listing can access
+        these statistics.
+        """
         try:
             listing = Listing.objects.get(pk=pk)
         except Listing.DoesNotExist:

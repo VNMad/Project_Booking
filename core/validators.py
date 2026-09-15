@@ -6,15 +6,27 @@ from django.utils.translation import gettext_lazy as _
 
 
 def validate_positive_price(value):
+    """
+    Validate that the rental price is not negative.
+
+    The validator expects a Money value and checks its numeric amount.
+    Zero is allowed.
+    """
     if value.amount < 0:
         raise ValidationError("Price per night cannot be negative.")
 
 
 def validate_password(value):
-    if not re.fullmatch(
-            r'(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}',
-            value
-    ):
+    """
+    Validate the password against the project's password requirements.
+
+    The password must contain at least 8 characters, including:
+    - one lowercase letter;
+    - one uppercase letter;
+    - one digit;
+    - one special character.
+    """
+    if not re.fullmatch(r'(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^\w\s]).{8,}', value):
         raise ValidationError(
             _('Password is not valid. '
               'It must contain at least 8 characters, '
