@@ -21,5 +21,7 @@ urlpatterns = [
     path("api/redoc/", SpectacularRedocView.as_view(), name="redoc"),
 ]
 
+handler500 = 'rest_framework.exceptions.server_error'
+
 if settings.DEBUG and not settings.USE_S3:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
