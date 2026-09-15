@@ -14,6 +14,12 @@ class PhotoSerializer(serializers.ModelSerializer):
 
 class ListingSerializer(serializers.ModelSerializer):
     photos = PhotoSerializer(many=True, required=False)
+    reviews_count = serializers.IntegerField(read_only=True, help_text="Total number of reviews for this listing.")
+    average_cleanliness = serializers.FloatField(read_only=True, allow_null=True,
+                                                 help_text="Average cleanliness rating from 1 to 5.")
+
+    average_location = serializers.FloatField(read_only=True, allow_null=True,
+                                              help_text="Average location rating from 1 to 5.")
     class Meta:
         model = Listing
         fields = [
@@ -29,6 +35,9 @@ class ListingSerializer(serializers.ModelSerializer):
             "price_per_night",
             "rooms",
             "photos",
+            "reviews_count",
+            "average_cleanliness",
+            "average_location",
             "is_active",
             "deleted_at",
             "created_at",
@@ -36,6 +45,9 @@ class ListingSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = [
             "id",
+            "reviews_count",
+            "average_cleanliness",
+            "average_location",
             "is_active",
             "deleted_at",
             "created_at",

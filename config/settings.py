@@ -211,3 +211,85 @@ else:
     MEDIA_URL = "/media/"
     MEDIA_ROOT = BASE_DIR / "media"
 
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {message}",
+            "style": "{",
+        },
+    },
+
+    "handlers": {
+        "console": {
+            "level": "INFO",
+            "class": "logging.StreamHandler",
+            "formatter": "verbose",
+        },
+
+        "http_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "verbose",
+            "filename": BASE_DIR / "logs" / "http_logs.log",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+        },
+
+        "db_file": {
+            "level": "DEBUG",
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "verbose",
+            "filename": BASE_DIR / "logs" / "db_logs.log",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+        },
+
+        "application_file": {
+            "level": "INFO",
+            "class": "logging.handlers.RotatingFileHandler",
+            "formatter": "verbose",
+            "filename": BASE_DIR / "logs" / "application_logs.log",
+            "maxBytes": 5 * 1024 * 1024,
+            "backupCount": 5,
+        },
+    },
+
+    "loggers": {
+        "django.server": {
+            "handlers": ["console", "http_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+
+        "django.request": {
+            "handlers": ["http_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+
+        "django.db.backends": {
+            "handlers": ["db_file"],
+            "level": "WARNING",
+            "propagate": False,
+        },
+
+        "django": {
+            "handlers": ["console"],
+            "level": "INFO",
+            "propagate": False,
+        },
+        "apps": {
+            "handlers": ["console", "application_file"],
+            "level": "INFO",
+            "propagate": False,
+        },
+    },
+
+    "root": {
+        "handlers": ["console"],
+        "level": "WARNING",
+    },
+}

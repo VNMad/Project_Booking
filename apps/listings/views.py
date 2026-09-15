@@ -1,18 +1,20 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import status, viewsets, serializers
+from rest_framework import status, viewsets, serializers, filters
 #from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
 from datetime import timedelta
 from django.utils import timezone
-from django.db.models import Q
+from django.db.models import Q, Avg, Count
+from django_filters.rest_framework import DjangoFilterBackend
 
 from core.models import BookingStatus
 from core.constants import LISTING_SOFT_DELETE_DAYS, LISTING_MAX_PHOTOS
 from .permissions import IsOwnerOrReadOnly, ModelPermissions
 from .models import Listing, Photo
 from .serializers import ListingSerializer, PhotoSerializer
+from .filters import ListingFilter
 
 
 
@@ -21,6 +23,11 @@ class ListingViewSet(viewsets.ModelViewSet):
     queryset = Listing.objects.all()
     serializer_class = ListingSerializer
     permission_classes = [IsOwnerOrReadOnly]
+    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_class = ListingFilter
+    search_fields = ["title", "description", "city", "district"]
+    ordering_fields = ["price_per_night", "created_at"]
+    ordering = ["-created_at"]
 
     @extend_schema(request=ListingSerializer, responses=ListingSerializer)
     def create(self, request):
@@ -28,6 +35,7 @@ class ListingViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
 
         listing = serializer.save(owner=request.user)
+        listing = self.get_queryset().get(pk=listing.pk)
         return Response(self.get_serializer(listing).data, status=status.HTTP_201_CREATED)
 
     def destroy(self, request, *args, **kwargs):
@@ -54,6 +62,7 @@ class ListingViewSet(viewsets.ModelViewSet):
         listing.is_active = True
         listing.deleted_at = None
         listing.save(update_fields=["is_active", "deleted_at"])
+        listing = self.get_queryset().get(pk=listing.pk)
 
         return Response(self.get_serializer(listing).data, status=status.HTTP_200_OK)
 
@@ -71,11 +80,14 @@ class ListingViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         user = self.request.user
+        queryset = Listing.objects.annotate(reviews_count=Count("bookings__review", distinct=True),
+                                            average_cleanliness=Avg("bookings__review__cleanliness_rating"),
+                                            average_location=Avg("bookings__review__location_rating"))
         restore_limit = timezone.now() - timedelta(days=LISTING_SOFT_DELETE_DAYS)
         if not user.is_authenticated:
-            return Listing.objects.filter(is_active=True)
+            return queryset.filter(is_active=True)
 
-        return Listing.objects.filter(Q(is_active=True) | Q(owner=user, deleted_at__gte=restore_limit))
+        return queryset.filter(Q(is_active=True) | Q(owner=user, deleted_at__gte=restore_limit))
 
 
 class PhotoViewSet(viewsets.ModelViewSet):

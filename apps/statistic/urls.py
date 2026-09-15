@@ -1,4 +1,10 @@
-from django.urls import path
+from rest_framework.routers import DefaultRouter
 
-urlpatterns = [
-]
+from .views import ListingStatisticsViewSet
+
+
+router = DefaultRouter()
+
+router.register("listings", ListingStatisticsViewSet, basename="listing-statistics")
+
+urlpatterns = router.urls
