@@ -1,13 +1,13 @@
 #version: '3.8'
 services:
-  db:
+  db_booking:
     image: mysql:8
-    container_name: my_db
+    container_name: booking_db
     environment:
-      MYSQL_DATABASE: rental_db
-      MYSQL_USER: user_sva
-      MYSQL_PASSWORD: 041002
-      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: ${MYSQL_NAME}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
     ports:
       - "3306:3306"
     volumes:
@@ -17,13 +17,13 @@ services:
   web:
     build:
       dockerfile: Dockerfile
-    container_name: myproject
+    container_name: booking_django
     ports:
       - "8000:8000"
     depends_on:
-      - db
-    environment:
-      - DB_HOST=db
+      - db_booking
+    env_file:
+      - .env
 
 volumes:
   data_base:
