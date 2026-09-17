@@ -1,11 +1,29 @@
+#version: '3.8'
 services:
-  web:
-    build: .
-    container_name: booking_web
-    command: python manage.py runserver 0.0.0.0:8000
+  db:
+    image: mysql:8
+    container_name: my_db
+    environment:
+      MYSQL_DATABASE: rental_db
+      MYSQL_USER: user_sva
+      MYSQL_PASSWORD: 041002
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
     volumes:
-      - .:/app
+      - ./db:/var/lib/mysql
+#      - /opt/homebrew/var/mysql/rental_mysqldb:/var/lib/mysql
+
+  web:
+    build:
+      dockerfile: Dockerfile
+    container_name: myproject
     ports:
       - "8000:8000"
-    env_file:
-      - .env
+    depends_on:
+      - db
+    environment:
+      - DB_HOST=db
+
+volumes:
+  data_base:

@@ -200,6 +200,7 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@booking.local")
 
 STORAGES = {"staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
 
@@ -293,3 +294,42 @@ LOGGING = {
         "level": "WARNING",
     },
 }
+
+
+BASE_CURRENCY = "EUR"
+DEFAULT_CURRENCY = "EUR"
+
+# EN: limits the dropdown and the values of the *_currency column
+CURRENCIES = (
+    "EUR", "USD", "GBP", "ALL", "AMD", "AZN", "BAM", "BGN", "BYN",
+    "CHF", "CZK", "DKK", "GEL", "HUF", "ISK", "MDL", "MKD", "NOK",
+    "PLN", "RON", "RSD", "RUB", "SEK", "TRY", "UAH",
+)
+
+CURRENCY_CHOICES = [
+    ("EUR", "EUR €"),
+    ("USD", "USD $"),
+    ("GBP", "GBP £"),
+    ("ALL", "ALL L"),
+    ("AMD", "AMD ֏"),
+    ("AZN", "AZN ₼"),
+    ("BAM", "BAM KM"),
+    ("BGN", "BGN лв"),
+    ("BYN", "BYN Br"),
+    ("CHF", "CHF Fr."),
+    ("CZK", "CZK Kč"),
+    ("DKK", "DKK kr"),
+    ("GEL", "GEL ₾"),
+    ("HUF", "HUF Ft"),
+    ("ISK", "ISK kr"),
+    ("MDL", "MDL L"),
+    ("MKD", "MKD ден"),
+    ("NOK", "NOK kr"),
+    ("PLN", "PLN zł"),
+    ("RON", "RON lei"),
+    ("RSD", "RSD din"),
+    ("RUB", "RUB ₽"),
+    ("SEK", "SEK kr"),
+    ("TRY", "TRY ₺"),
+    ("UAH", "UAH ₴"),
+]
