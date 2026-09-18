@@ -1,29 +1,63 @@
-#version: '3.8'
 services:
-  db_booking:
-    image: mysql:8
+  web:
+    build: .
+    container_name: booking_django
+    restart: always
+    env_file:
+      - .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+
+  db:
+    image: mysql:8.4
     container_name: booking_db
+    restart: always
+    env_file:
+      - .env
     environment:
       MYSQL_DATABASE: ${MYSQL_NAME}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
     ports:
       - "3306:3306"
-    volumes:
-      - ./db:/var/lib/mysql
-#      - /opt/homebrew/var/mysql/rental_mysqldb:/var/lib/mysql
-
-  web:
-    build:
-      dockerfile: Dockerfile
-    container_name: booking_django
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db_booking
-    env_file:
-      - .env
 
 volumes:
-  data_base:
+  mysql_data:
+
+
+##version: '3.8'
+#services:
+#  db_booking:
+#    image: mysql:8
+#    container_name: booking_db
+#    environment:
+#      MYSQL_DATABASE: ${MYSQL_NAME}
+#      MYSQL_USER: ${MYSQL_USER}
+#      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+#      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+#    ports:
+#      - "3306:3306"
+#    volumes:
+#      - ./db:/var/lib/mysql
+##      - /opt/homebrew/var/mysql/rental_mysqldb:/var/lib/mysql
+#
+#  web:
+#    build:
+#      dockerfile: Dockerfile
+#    container_name: booking_django
+#    ports:
+#      - "8000:8000"
+#    depends_on:
+#      - db_booking
+#    env_file:
+#      - .env
+#
+#volumes:
+#  data_base:
