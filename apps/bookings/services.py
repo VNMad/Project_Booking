@@ -39,6 +39,9 @@ def create_booking(*, tenant, listing_id, date_start, date_end):
         if listing.deleted_at is not None:
             raise ValidationError(_("This listing has been deleted."))
 
+        if listing.owner_id == tenant.id:
+            raise ValidationError(_("You cannot book your own listing."))
+
         booking_exists = Booking.objects.filter(
             listing=listing, status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED],
             date_start__lt=date_end, date_end__gt=date_start).exists()

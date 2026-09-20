@@ -1,26 +1,24 @@
 #!/bin/bash
 set -e
 
-echo "=== 1. Ожидание готовности MySQL ==="
-until python -c "
-import sys, os, MySQLdb
-try:
-    MySQLdb.connect(
-        host=os.environ.get('MYSQL_HOST', 'db'),
-        user=os.environ.get('MYSQL_USER', 'user_connect'),
-        passwd=os.environ.get('MYSQL_PASSWORD', 'your_password'),
-        db=os.environ.get('MYSQL_DATABASE', 'booking_db'),
-        port=int(os.environ.get('MYSQL_PORT', 3306))
-    )
-    sys.exit(0)
-except Exception:
-    sys.exit(1)
-" 2>/dev/null; do
-  echo "MySQL еще инициализируется, ждем 2 сек..."
+mkdir -p /app/logs
+touch /app/logs/application_logs.log
+touch /app/logs/db_logs.log
+touch /app/logs/http_logs.log
+
+echo "=== 1. Ожидание готовности MySQL (Порт 3306) ==="
+# Ждем физической готовности сетевого порта MySQL
+until python -c "import socket; s = socket.socket(); s.settimeout(2); s.connect(('db', 3306)); s.close()"; do
+  echo "MySQL порт 3306 еще не доступен, ждем 2 сек..."
   sleep 2
 done
 
-echo "MySQL готов к работе!"
+echo "Порт БД открыт! Проверяем авторизацию Django..."
+
+# Показываем реальную ошибку, если Django не может подключиться к БД
+python manage.py check --database default
+
+echo "=== MySQL и Django успешно связались! ==="
 
 echo "=== 2. Генерация файлов миграций ==="
 python manage.py makemigrations users
@@ -31,7 +29,7 @@ python manage.py makemigrations statistic
 python manage.py makemigrations
 
 echo "=== 3. Первичный запуск миграций (Строго сначала Users!) ==="
-# Принудительно создаем таблицу кастомного пользователя первее системного admin
+# Сначала создаем таблицу пользователей, чтобы системный admin не упал с ошибкой
 python manage.py migrate users
 python manage.py migrate
 

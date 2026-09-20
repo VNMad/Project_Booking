@@ -61,3 +61,20 @@ volumes:
 #
 #volumes:
 #  data_base:
+#
+
+####_HTTPS_####
+#  acme-companion:
+#    image: nginxproxy/acme-companion
+#    container_name: nginx-proxy-acme
+#    environment:
+#      - NGINX_PROXY_CONTAINER=nginx-proxy
+#    volumes:
+#      - /var/run/docker.sock:/var/run/docker.sock:ro
+#      - ./acme:/etc/acme.sh
+#      - ./certs:/etc/nginx/certs
+#      - ./vhost:/etc/nginx/vhost.d
+#      - ./html:/usr/share/nginx/html
+#    restart: always
+#    networks:
+#      - webproxy
