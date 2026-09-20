@@ -80,3 +80,38 @@ def api_client():
     Create and return an API client for testing HTTP requests.
     """
     return APIClient()
+
+
+@pytest.fixture
+def booking_owner(db):
+    """
+    Create a separate user who acts as a listing owner for booking tests.
+    """
+    return BookingUser.objects.create_user(
+        email="bookingowner@example.com",
+        password="TestPassword1!",
+        first_name="Booking",
+        last_name="Owner",
+        phone="+491234567890",
+    )
+
+
+@pytest.fixture
+def booking_listing(booking_owner):
+    """
+    Create a listing owned by a separate booking owner.
+    """
+    return Listing.objects.create(
+        owner=booking_owner,
+        title="Booking apartment",
+        description="Apartment for booking tests.",
+        country="DE",
+        city="Berlin",
+        district="Mitte",
+        street="Booking Street",
+        house_number="20",
+        apartment_number="10",
+        price_per_night=Money(100, "EUR"),
+        rooms="2",
+        is_active=True,
+    )
