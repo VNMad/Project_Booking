@@ -33,3 +33,20 @@ def validate_password(value):
               'one uppercase letter, one lowercase letter, '
               'one digit and one special character.')
         )
+
+
+def validate_phone(value):
+    """
+    Validate an international phone number.
+
+    The phone number must:
+    - start with '+';
+    - contain only digits after '+';
+    - contain from 7 to 15 digits.
+    """
+    if not re.fullmatch(r'\+[0-9]{7,15}', value):
+        raise ValidationError(
+            _(
+                'Phone number must start with (+) and contain from 7 to 15 digits.'
+            )
+        )

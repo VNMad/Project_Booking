@@ -60,7 +60,7 @@ class ReviewViewSet(viewsets.ModelViewSet):
                                    user=request.user,
                                    cleanliness_rating=serializer.validated_data["cleanliness_rating"],
                                    location_rating=serializer.validated_data["location_rating"],
-                                   comment=serializer.validated_data["comment"])
+                                   comment=serializer.validated_data.get("comment", ""))
         except DjangoValidationError as exc:
             self._handle_service_error(exc)
 

@@ -1,13 +1,17 @@
 import pytest
 from decimal import Decimal
 from io import BytesIO
+from datetime import timedelta
 
+from django.utils import timezone
 from django.core.files.uploadedfile import SimpleUploadedFile
 from djmoney.money import Money
 from rest_framework.test import APIClient
 
 from apps.listings.models import Listing, Photo
 from apps.users.models import BookingUser
+from apps.bookings.models import Booking
+from core.models import BookingStatus
 
 
 @pytest.fixture
@@ -114,4 +118,34 @@ def booking_listing(booking_owner):
         price_per_night=Money(100, "EUR"),
         rooms="2",
         is_active=True,
+    )
+
+
+@pytest.fixture
+def completed_booking(user, booking_listing):
+    """
+    Create a completed booking that can be reviewed by the tenant.
+    """
+    now = timezone.now()
+
+    return Booking.objects.create(
+        tenant=user,
+        listing=booking_listing,
+        date_start=now - timedelta(days=5),
+        date_end=now - timedelta(days=2),
+
+        snapshot_title=booking_listing.title,
+        snapshot_country=booking_listing.country,
+        snapshot_city=booking_listing.city,
+        snapshot_district=booking_listing.district,
+        snapshot_street=booking_listing.street,
+        snapshot_house_number=booking_listing.house_number,
+        snapshot_apartment_number=booking_listing.apartment_number,
+
+        snapshot_first_name=user.first_name,
+        snapshot_last_name=user.last_name,
+        snapshot_email=user.email,
+        snapshot_price_per_night=booking_listing.price_per_night,
+
+        status=BookingStatus.COMPLETED,
     )

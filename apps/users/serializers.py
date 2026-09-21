@@ -15,8 +15,8 @@ class RegisterSerializer(serializers.ModelSerializer):
     phone number, and password.
     """
     password = serializers.CharField(write_only=True, min_length=8, help_text=(
-            "User password"
-            "It must contain at least 8 characters, one uppercase letter, one lowercase letter,"
+            "User password. "
+            "It must contain at least 8 characters, one uppercase letter, one lowercase letter, "
             "one digit and one special character."))
     email = serializers.EmailField(help_text="User email address. Used as the login identifier.")
 
@@ -32,7 +32,10 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             "first_name": {"help_text": "User's first name."},
             "last_name": {"help_text": "User's last name."},
-            "phone": {"help_text": "User's phone number."},
+            "phone": {"help_text": "The phone number must:"
+                                   " - start with '+';"
+                                   "- contain only digits after '+';"
+                                   "- contain from 7 to 15 digits."},
         }
 
     def validate_email(self, value):
@@ -89,7 +92,10 @@ class UserSerializer(serializers.ModelSerializer):
             "first_name": {"help_text": "User's first name."},
             "last_name": {"help_text": "User's last name."},
             "email": {"help_text": "User email address. Used as the login identifier."},
-            "phone": {"help_text": "User's phone number."},
+            "phone": {"help_text": "The phone number must:"
+                                   " - start with '+';"
+                                   "- contain only digits after '+';"
+                                   "- contain from 7 to 15 digits."},
             "is_active": {"help_text": "Indicates whether the user account is active."},
             "created_at": {"help_text": "Date and time when the user account was created."},
             "updated_at": {"help_text": "Date and time when the user account was last updated."},

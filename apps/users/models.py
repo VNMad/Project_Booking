@@ -2,6 +2,7 @@ from django.contrib.auth.models import AbstractUser, UserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from core.models import TimeStampedModel, UniqueID
+from core.validators import validate_phone
 
 
 class BookingUserManager(UserManager):
@@ -28,7 +29,7 @@ class BookingUser(TimeStampedModel, AbstractUser):
     first_name = models.CharField(max_length=25, verbose_name=_("First name"))
     last_name = models.CharField(max_length=25, verbose_name=_("Last name"))
     email = models.EmailField(unique=True, max_length=255, verbose_name=_("Email"))
-    phone = models.CharField(max_length=20, verbose_name=_("Phone"))
+    phone = models.CharField(max_length=20, validators=[validate_phone], verbose_name=_("Phone"))
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
