@@ -112,6 +112,7 @@ SPECTACULAR_SETTINGS = {
     'DESCRIPTION': 'API for accommodation booking',
     'VERSION': '1.0.0',
     'SERVE_INCLUDE_SCHEMA': False,
+    "COMPONENT_SPLIT_REQUEST": True,
 }
 from datetime import timedelta
 SIMPLE_JWT = {

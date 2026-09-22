@@ -1,4 +1,7 @@
+from django.db.models import Avg, Count
+
 from apps.listings.serializers import ListingSerializer, PhotoSerializer
+from apps.listings.models import Listing
 
 
 def test_listing_serializer_returns_listing_data(listing):
@@ -32,13 +35,23 @@ def test_listing_serializer_contains_photo_data(listing, photo):
 
 def test_listing_serializer_returns_review_statistics(listing):
     """
-    Check that ListingSerializer returns review statistics fields.
+    Check that ListingSerializer returns review statistics fields
+    for a listing annotated with review statistics.
     """
-    serializer = ListingSerializer(listing)
+    annotated_listing = Listing.objects.annotate(
+        reviews_count=Count("bookings__review", distinct=True),
+        average_cleanliness=Avg("bookings__review__cleanliness_rating"),
+        average_location=Avg("bookings__review__location_rating")).get(pk=listing.pk)
+
+    serializer = ListingSerializer(annotated_listing)
 
     assert "reviews_count" in serializer.data
     assert "average_cleanliness" in serializer.data
     assert "average_location" in serializer.data
+
+    assert serializer.data["reviews_count"] == 0
+    assert serializer.data["average_cleanliness"] is None
+    assert serializer.data["average_location"] is None
 
 
 def test_listing_serializer_validates_maximum_photo_count(listing):
@@ -80,7 +93,7 @@ def test_photo_serializer_returns_photo_data(photo):
     serializer = PhotoSerializer(photo)
 
     assert serializer.data["id"] == str(photo.id)
-    assert serializer.data["listing"] == str(photo.listing_id)
+    assert serializer.data["listing"] ==photo.listing_id
     assert serializer.data["position"] == 1
 
 

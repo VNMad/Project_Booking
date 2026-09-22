@@ -1,8 +1,54 @@
+from datetime import timedelta
+from io import BytesIO
+from PIL import Image
+from core.constants import LISTING_MAX_PHOTOS
+
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.utils import timezone
 from rest_framework import status
 
+from apps.bookings.services import create_booking
+from apps.listings.models import Listing, Photo
 from apps.users.models import BookingUser
-from apps.listings.models import Listing
+
+
+def get_future_booking_dates():
+    """
+    Return future check-in and check-out dates for booking tests.
+    """
+    now = timezone.now()
+
+    date_start = (now + timedelta(days=10)).replace(
+        hour=14,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    date_end = (now + timedelta(days=12)).replace(
+        hour=11,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+    return date_start, date_end
+
+
+def create_uploaded_image(name="test.png"):
+    """
+    Create a valid image file for photo API tests.
+    """
+    image = Image.new("RGB", (10, 10))
+
+    buffer = BytesIO()
+    image.save(buffer, format="PNG")
+
+    return SimpleUploadedFile(
+        name=name,
+        content=buffer.getvalue(),
+        content_type="image/png",
+    )
 
 
 def test_list_listings(api_client, user):
@@ -351,3 +397,249 @@ def test_delete_photo_other_user_forbidden(
     response = api_client.delete(url)
 
     assert response.status_code == status.HTTP_403_FORBIDDEN
+
+
+def test_delete_listing_with_active_booking_is_rejected(
+    api_client,
+    user,
+    booking_owner,
+    booking_listing,
+):
+    """
+    Check that a listing with an active booking cannot be deleted.
+    """
+    date_start, date_end = get_future_booking_dates()
+
+    create_booking(
+        tenant=user,
+        listing_id=booking_listing.id,
+        date_start=date_start,
+        date_end=date_end,
+    )
+
+    api_client.force_authenticate(user=booking_owner)
+
+    url = reverse(
+        "listings-detail",
+        kwargs={"pk": booking_listing.id},
+    )
+
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    booking_listing.refresh_from_db()
+
+    assert booking_listing.is_active is True
+    assert booking_listing.deleted_at is None
+
+
+def test_delete_already_deleted_listing_is_rejected(
+    api_client,
+    listing,
+):
+    """
+    Check that an already soft-deleted listing cannot be deleted again.
+    """
+    listing.is_active = False
+    listing.deleted_at = timezone.now()
+    listing.save(update_fields=["is_active", "deleted_at"])
+
+    api_client.force_authenticate(user=listing.owner)
+
+    url = reverse(
+        "listings-detail",
+        kwargs={"pk": listing.id},
+    )
+
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["detail"] == "Listing is already deleted."
+
+
+def test_restore_active_listing_is_rejected(
+    api_client,
+    listing,
+):
+    """
+    Check that an active listing cannot be restored.
+    """
+    api_client.force_authenticate(user=listing.owner)
+
+    url = reverse(
+        "listings-restore",
+        kwargs={"pk": listing.id},
+    )
+
+    response = api_client.post(url)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert response.data["detail"] == "This listing is not deleted."
+
+
+def test_patch_deleted_listing_is_rejected(
+    api_client,
+    listing,
+):
+    """
+    Check that a soft-deleted listing cannot be partially updated.
+    """
+    listing.is_active = False
+    listing.deleted_at = timezone.now()
+    listing.save(update_fields=["is_active", "deleted_at"])
+
+    api_client.force_authenticate(user=listing.owner)
+
+    url = reverse(
+        "listings-detail",
+        kwargs={"pk": listing.id},
+    )
+
+    response = api_client.patch(
+        url,
+        {"title": "Changed title"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    listing.refresh_from_db()
+
+    assert listing.title == "Nice apartment in Berlin"
+
+
+def test_put_deleted_listing_is_rejected(
+    api_client,
+    listing,
+):
+    """
+    Check that a soft-deleted listing cannot be fully updated.
+    """
+    listing.is_active = False
+    listing.deleted_at = timezone.now()
+    listing.save(update_fields=["is_active", "deleted_at"])
+
+    api_client.force_authenticate(user=listing.owner)
+
+    url = reverse(
+        "listings-detail",
+        kwargs={"pk": listing.id},
+    )
+
+    response = api_client.put(
+        url,
+        {"title": "Changed title"},
+        format="json",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    listing.refresh_from_db()
+
+    assert listing.title == "Nice apartment in Berlin"
+
+
+def test_listing_owner_can_create_photo(
+    api_client,
+    listing,
+    tmp_path,
+    settings,
+):
+    """
+    Check that the listing owner can add a photo.
+    """
+    settings.MEDIA_ROOT = tmp_path
+
+    api_client.force_authenticate(user=listing.owner)
+
+    url = reverse("photo-list")
+
+    data = {
+        "listing": str(listing.id),
+        "image": create_uploaded_image(),
+        "position": 1,
+    }
+
+    response = api_client.post(
+        url,
+        data,
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_201_CREATED
+    assert Photo.objects.filter(listing=listing).count() == 1
+
+
+def test_other_user_cannot_create_photo(
+    api_client,
+    listing,
+    booking_owner,
+    tmp_path,
+    settings,
+):
+    """
+    Check that another user cannot add a photo
+    to someone else's listing.
+    """
+    settings.MEDIA_ROOT = tmp_path
+
+    api_client.force_authenticate(user=booking_owner)
+
+    url = reverse("photo-list")
+
+    data = {
+        "listing": str(listing.id),
+        "image": create_uploaded_image(),
+        "position": 1,
+    }
+
+    response = api_client.post(
+        url,
+        data,
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_403_FORBIDDEN
+    assert Photo.objects.filter(listing=listing).count() == 0
+
+
+def test_listing_photo_limit_is_enforced(
+    api_client,
+    listing,
+    tmp_path,
+    settings,
+):
+    """
+    Check that a listing cannot contain more
+    than the configured maximum number of photos.
+    """
+    settings.MEDIA_ROOT = tmp_path
+
+    for position in range(1, LISTING_MAX_PHOTOS + 1):
+        Photo.objects.create(
+            listing=listing,
+            image=create_uploaded_image(
+                name=f"photo_{position}.png",
+            ),
+            position=position,
+        )
+
+    api_client.force_authenticate(user=listing.owner)
+
+    url = reverse("photo-list")
+
+    data = {
+        "listing": str(listing.id),
+        "image": create_uploaded_image(name="extra.png"),
+        "position": LISTING_MAX_PHOTOS + 1,
+    }
+
+    response = api_client.post(
+        url,
+        data,
+        format="multipart",
+    )
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+    assert Photo.objects.filter(listing=listing).count() == LISTING_MAX_PHOTOS

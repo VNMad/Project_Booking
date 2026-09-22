@@ -1,9 +1,10 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import status, viewsets, serializers, filters
-#from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.parsers import MultiPartParser, FormParser
 from datetime import timedelta
 from django.utils import timezone
 from django.db.models import Q, Avg, Count
@@ -59,14 +60,13 @@ class ListingViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         """
         Soft-delete a listing.
-        A listing cannot be deleted if it already has pending or
-        confirmed bookings.
+        A listing cannot be deleted if it already has pending or confirmed bookings.
         """
         listing = self.get_object()
         if listing.deleted_at is not None:
             return Response({"detail": "Listing is already deleted."}, status=status.HTTP_400_BAD_REQUEST)
         if listing.bookings.filter(status__in=[BookingStatus.PENDING, BookingStatus.CONFIRMED]).exists():
-            return Response({"detail": "Listing cannot be deleted because it has active."},
+            return Response({"detail": "Listing cannot be deleted because it has active bookings."},
                             status=status.HTTP_400_BAD_REQUEST)
         listing.is_active = False
         listing.deleted_at = timezone.now()
@@ -91,8 +91,24 @@ class ListingViewSet(viewsets.ModelViewSet):
         listing.deleted_at = None
         listing.save(update_fields=["is_active", "deleted_at"])
         listing = self.get_queryset().get(pk=listing.pk)
-
         return Response(self.get_serializer(listing).data, status=status.HTTP_200_OK)
+
+
+    @extend_schema(responses=ListingSerializer(many=True), summary="Get my listings",
+        description=("Return all listings owned by the authenticated user, "
+                     "including active, inactive, and soft-deleted listings."))
+    @action(detail=False, methods=["get"], url_path="my-listings", permission_classes=[IsAuthenticated])
+    def my_listings(self, request):
+        """
+        Return all listings owned by the authenticated user.
+        """
+        listings = (Listing.objects.filter(owner=request.user).prefetch_related("photos").order_by("-created_at"))
+        page = self.paginate_queryset(listings)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(listings, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
 
 
     @extend_schema(request=ListingSerializer, responses=ListingSerializer, summary="Update a listing",
@@ -149,6 +165,7 @@ class PhotoViewSet(viewsets.ModelViewSet):
     """
     serializer_class = PhotoSerializer
     permission_classes = [IsOwnerOrReadOnly]
+    parser_classes = (MultiPartParser, FormParser)
 
     def get_queryset(self):
         """ Return listing photos with their related listing loaded. """

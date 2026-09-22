@@ -1,10 +1,35 @@
 import pytest
+from datetime import timedelta
 
+from django.utils import timezone
 from django.urls import reverse
 from rest_framework import status
 from rest_framework.test import APIClient
 
 from apps.users.models import BookingUser
+from apps.bookings.services import create_booking
+
+
+def get_future_booking_dates():
+    """
+    Return future dates for open booking tests.
+    """
+    now = timezone.now()
+
+    date_start = (now + timedelta(days=10)).replace(
+        hour=14,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+    date_end = (now + timedelta(days=12)).replace(
+        hour=11,
+        minute=0,
+        second=0,
+        microsecond=0,
+    )
+
+    return date_start, date_end
 
 
 @pytest.fixture
@@ -183,3 +208,93 @@ def test_delete_current_user_requires_authentication(api_client):
     response = api_client.delete(url)
 
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_delete_current_user_rejected_when_tenant_has_open_booking(
+    api_client,
+    user,
+    booking_listing,
+):
+    """
+    Check that a tenant with an open booking
+    cannot deactivate their account.
+    """
+    date_start, date_end = get_future_booking_dates()
+
+    create_booking(
+        tenant=user,
+        listing_id=booking_listing.id,
+        date_start=date_start,
+        date_end=date_end,
+    )
+
+    api_client.force_authenticate(user=user)
+
+    url = reverse("users-me")
+
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    user.refresh_from_db()
+
+    assert user.is_active is True
+
+
+def test_delete_current_user_rejected_when_owner_has_open_booking(
+    api_client,
+    user,
+    booking_owner,
+    listing,
+):
+    """
+    Check that a listing owner with an open booking
+    cannot deactivate their account.
+    """
+    date_start, date_end = get_future_booking_dates()
+
+    create_booking(
+        tenant=booking_owner,
+        listing_id=listing.id,
+        date_start=date_start,
+        date_end=date_end,
+    )
+
+    api_client.force_authenticate(user=user)
+
+    url = reverse("users-me")
+
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_400_BAD_REQUEST
+
+    user.refresh_from_db()
+
+    assert user.is_active is True
+
+
+def test_delete_current_user_deactivates_owned_listings(
+    api_client,
+    user,
+    listing,
+):
+    """
+    Check that deactivating a user also deactivates
+    all active listings owned by that user.
+    """
+    assert listing.owner == user
+    assert listing.is_active is True
+
+    api_client.force_authenticate(user=user)
+
+    url = reverse("users-me")
+
+    response = api_client.delete(url)
+
+    assert response.status_code == status.HTTP_204_NO_CONTENT
+
+    user.refresh_from_db()
+    listing.refresh_from_db()
+
+    assert user.is_active is False
+    assert listing.is_active is False

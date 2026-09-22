@@ -13,6 +13,7 @@ class ReviewAdmin(SimpleHistoryAdmin):
         "location_rating",
         "created_at",
     )
+    list_select_related = ("booking",)
     list_filter = ("cleanliness_rating", "location_rating", "created_at")
     search_fields = ("booking__snapshot_title", "comment")
     raw_id_fields = ("booking",)

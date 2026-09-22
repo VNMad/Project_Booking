@@ -3,25 +3,27 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, OpenApiTypes, extend_schema
 from django.db.models import Q
 from django.core.exceptions import ValidationError as DjangoValidationError
+from django.utils import timezone
 
 from .models import Booking
 from .serializers import BookingCreateSerializer, BookingSerializer
-from .services import create_booking, confirm_booking, reject_booking, cancel_booking, BookingNotFoundError, \
-    complete_booking_if_finished
+from .services import (create_booking, confirm_booking, reject_booking, cancel_booking, BookingNotFoundError,
+                       complete_booking_if_finished)
 
 
-class BookingViewSet(viewsets.ModelViewSet):
+class BookingViewSet(viewsets.GenericViewSet):
     """
-        ViewSet for managing rental bookings.
+    ViewSet for managing rental bookings.
 
-        Provides booking creation, retrieval, confirmation, rejection,
-        cancellation, and automatic completion of finished bookings.
+    Provides booking creation, retrieval, separate booking lists
+    for tenants and listing owners, confirmation, rejection,
+    cancellation, and automatic completion of finished bookings.
 
-        Booking updates and deletion are not allowed.
-        """
+    Booking updates and deletion are not supported.
+    """
     permission_classes = [IsAuthenticated]
     serializer_class = BookingSerializer
 
@@ -87,6 +89,66 @@ class BookingViewSet(viewsets.ModelViewSet):
         return Response(serializer.data, status=status.HTTP_200_OK)
 
 
+    @extend_schema(responses=BookingSerializer(many=True), summary="Get my trips",
+        description=("Return bookings where the authenticated user is the tenant. "
+                     "Use the period parameter to filter current/upcoming "
+                     "or past trips."),
+        parameters=[OpenApiParameter(
+                            name="period",
+                            type=OpenApiTypes.STR,
+                            location=OpenApiParameter.QUERY,
+                            required=False,
+                            enum=["active", "past"],
+                            description=(
+                                    "Filter trips by period. "
+                                    "'active' returns current and upcoming trips. "
+                                    "'past' returns trips whose check-out date has passed. "
+                                    "If omitted, all tenant bookings are returned."))])
+    @action(detail=False, methods=["get"], url_path="my-trips")
+    def my_trips(self, request):
+        """
+        Return bookings where the authenticated user is the tenant.
+
+        Optional period query parameter:
+        - active: current and upcoming trips;
+        - past: trips whose check-out date has passed.
+        """
+        bookings = Booking.objects.filter(tenant=request.user)
+        period = request.query_params.get("period")
+
+        if period == "active":
+            bookings = bookings.filter(date_end__gte=timezone.now()).order_by("date_start")
+        elif period == "past":
+            bookings = bookings.filter(date_end__lt=timezone.now()).order_by("-date_end")
+        else:
+            bookings = bookings.order_by("date_start")
+        page = self.paginate_queryset(bookings)
+
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(bookings, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
+    @extend_schema(responses=BookingSerializer(many=True), summary="Get bookings for my listings",
+        description=("Return bookings created by tenants for listings owned "
+                     "by the authenticated user."))
+    @action(detail=False, methods=["get"], url_path="my-listings")
+    def my_listings(self, request):
+        """
+        Return bookings created for listings owned by the authenticated user.
+        """
+        bookings = (Booking.objects.filter(listing__owner=request.user).select_related("listing", "tenant")
+                    .order_by("-created_at"))
+        page = self.paginate_queryset(bookings)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        serializer = self.get_serializer(bookings, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+
+
     @extend_schema(request=None, responses=BookingSerializer, summary="Confirm a booking",
                    description=("Confirm a pending booking as the owner of the associated "
                                 "listing. The authenticated user must be the listing owner."))
@@ -126,19 +188,3 @@ class BookingViewSet(viewsets.ModelViewSet):
 
         return Response(BookingSerializer(booking).data, status=status.HTTP_200_OK)
 
-    @extend_schema(summary="Update booking", description="Booking data cannot be edited after creation.",
-        request=BookingSerializer, responses=None)
-    def update(self, request, *args, **kwargs):
-        """ Reject attempts to fully update a booking. """
-        return Response({"detail": "Booking cannot be edited."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    @extend_schema(summary="Partially update booking", description="Booking data cannot be edited after creation.",
-        request=BookingSerializer, responses=None)
-    def partial_update(self, request, *args, **kwargs):
-        """  Reject attempts to partially update a booking. """
-        return Response({"detail": "Booking cannot be edited."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)
-
-    @extend_schema(summary="Delete booking", description="Bookings cannot be deleted.", responses=None)
-    def destroy(self, request, *args, **kwargs):
-        """ Reject attempts to delete a booking. """
-        return Response({"detail": "Booking cannot be deleted."}, status=status.HTTP_405_METHOD_NOT_ALLOWED)

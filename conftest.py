@@ -1,6 +1,4 @@
 import pytest
-from decimal import Decimal
-from io import BytesIO
 from datetime import timedelta
 
 from django.utils import timezone
@@ -149,3 +147,45 @@ def completed_booking(user, booking_listing):
 
         status=BookingStatus.COMPLETED,
     )
+
+
+@pytest.fixture
+def trip_bookings(user, booking_listing):
+    """
+    Create past, current, and future bookings
+    for my-trips endpoint tests.
+    """
+
+    def create_booking(days_start, days_end):
+        from django.utils import timezone
+        from datetime import timedelta
+
+        now = timezone.now()
+
+        return Booking.objects.create(
+            tenant=user,
+            listing=booking_listing,
+            date_start=now + timedelta(days=days_start),
+            date_end=now + timedelta(days=days_end),
+
+            snapshot_title=booking_listing.title,
+            snapshot_country=booking_listing.country,
+            snapshot_city=booking_listing.city,
+            snapshot_district=booking_listing.district,
+            snapshot_street=booking_listing.street,
+            snapshot_house_number=booking_listing.house_number,
+            snapshot_apartment_number=booking_listing.apartment_number,
+
+            snapshot_first_name=user.first_name,
+            snapshot_last_name=user.last_name,
+            snapshot_email=user.email,
+            snapshot_price_per_night=booking_listing.price_per_night,
+
+            status=BookingStatus.COMPLETED,
+        )
+
+    return {
+        "past": create_booking(-10, -5),
+        "current": create_booking(-2, 2),
+        "future": create_booking(10, 12),
+    }

@@ -71,42 +71,18 @@ def test_list_bookings_requires_authentication(api_client):
     assert response.status_code == status.HTTP_401_UNAUTHORIZED
 
 
-def test_list_bookings(api_client, listing, user):
+def test_general_booking_list_is_not_available(api_client, user):
     """
-    Check that an authenticated user can list accessible bookings.
+    Check that the general booking list is not available.
+    Tenant bookings and bookings for owned listings
+    are available through separate endpoints.
     """
-    booking = create_booking_for_test(listing=listing, user=user)
     api_client.force_authenticate(user=user)
+
     url = reverse("booking-list")
     response = api_client.get(url)
 
-    assert response.status_code == status.HTTP_200_OK
-    assert response.data["count"] == 1
-    assert response.data["results"][0]["id"] == str(booking.id)
-
-
-def test_create_booking(api_client, listing, user):
-    """
-    Check that an authenticated user can create a booking.
-    """
-    api_client.force_authenticate(user=user)
-    date_start, date_end = get_booking_dates()
-    url = reverse("booking-list")
-
-    data = {
-        "listing": str(listing.id),
-        "date_start": date_start.isoformat(),
-        "date_end": date_end.isoformat(),
-    }
-
-    response = api_client.post(url, data, format="json")
-
-    assert response.status_code == status.HTTP_201_CREATED
-    booking = Booking.objects.get(id=response.data["id"])
-
-    assert booking.tenant == user
-    assert booking.listing == listing
-    assert booking.status == BookingStatus.PENDING
+    assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
 
 
 def test_create_booking_requires_authentication(api_client, listing):
@@ -673,3 +649,109 @@ def test_retrieve_finished_confirmed_booking_marks_it_completed(
     booking.refresh_from_db()
 
     assert booking.status == BookingStatus.COMPLETED
+
+
+def test_my_trips_returns_all_tenant_bookings(api_client, user, trip_bookings):
+    api_client.force_authenticate(user=user)
+
+    url = reverse("booking-my-trips")
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 3
+
+    booking_ids = {item["id"] for item in response.data["results"]}
+
+    assert str(trip_bookings["past"].id) in booking_ids
+    assert str(trip_bookings["current"].id) in booking_ids
+    assert str(trip_bookings["future"].id) in booking_ids
+
+
+def test_my_trips_active_returns_current_and_future_bookings(api_client, user, trip_bookings):
+    api_client.force_authenticate(user=user)
+
+    url = reverse("booking-my-trips")
+    response = api_client.get(url, {"period": "active"})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 2
+
+    booking_ids = {item["id"] for item in response.data["results"]}
+
+    assert str(trip_bookings["current"].id) in booking_ids
+    assert str(trip_bookings["future"].id) in booking_ids
+    assert str(trip_bookings["past"].id) not in booking_ids
+
+
+def test_my_trips_past_returns_finished_trips(api_client, user, trip_bookings):
+    api_client.force_authenticate(user=user)
+
+    url = reverse("booking-my-trips")
+    response = api_client.get(url, {"period": "past"})
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 1
+
+    booking_ids = {item["id"] for item in response.data["results"]}
+
+    assert str(trip_bookings["past"].id) in booking_ids
+    assert str(trip_bookings["current"].id) not in booking_ids
+    assert str(trip_bookings["future"].id) not in booking_ids
+
+
+def test_my_trips_does_not_return_bookings_for_owned_listings(api_client, listing, user, booking_owner):
+    """
+    Check that my-trips contains only bookings
+    where the authenticated user is the tenant.
+    """
+    booking = create_booking_for_test(listing=listing, user=booking_owner)
+
+    assert listing.owner == user
+    assert booking.tenant == booking_owner
+    assert booking.tenant != user
+
+    api_client.force_authenticate(user=user)
+
+    url = reverse("booking-my-trips")
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 0
+
+
+def test_my_listings_returns_bookings_for_owned_listings(api_client, listing, user, booking_owner):
+    """
+    Check that my-listings returns bookings created
+    for listings owned by the authenticated user.
+    """
+    booking = create_booking_for_test(listing=listing, user=booking_owner)
+
+    assert listing.owner == user
+    assert booking.tenant == booking_owner
+
+    api_client.force_authenticate(user=user)
+
+    url = reverse("booking-my-listings")
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 1
+    assert response.data["results"][0]["id"] == str(booking.id)
+
+
+def test_my_listings_does_not_return_tenant_bookings(api_client, booking_listing, user):
+    """
+    Check that my-listings does not return bookings
+    where the authenticated user is only the tenant.
+    """
+    create_booking_for_test(listing=booking_listing, user=user)
+
+    assert booking_listing.owner != user
+
+    api_client.force_authenticate(user=user)
+
+    url = reverse("booking-my-listings")
+    response = api_client.get(url)
+
+    assert response.status_code == status.HTTP_200_OK
+    assert response.data["count"] == 0
