@@ -137,8 +137,7 @@ Example:
 Пример:
 
 ```env
-DEBUG=True
-USE_S3=False
+DEBUG=False
 
 MYSQL=False
 

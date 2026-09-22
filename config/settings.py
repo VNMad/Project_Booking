@@ -26,10 +26,10 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = env("SECRET_KEY")
+DEMO_USER_PASSWORD = env("DEMO_USER_PASSWORD")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = env.bool("DEBUG")
-USE_S3 = env.bool("USE_S3")
 
 ALLOWED_HOSTS = env.list("ALLOWED_HOSTS")
 
@@ -44,7 +44,6 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
-    "storages",
     "simple_history",
 
     'django_filters',
@@ -203,15 +202,17 @@ MAILERS = {
 }
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="no-reply@booking.local")
 
-STORAGES = {"staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}}
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage",
+    },
+}
 
-if USE_S3:
-    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
-else:
-    STORAGES["default"] = {"BACKEND": "django.core.files.storage.FileSystemStorage"}
-
-    MEDIA_URL = "/media/"
-    MEDIA_ROOT = BASE_DIR / "media"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 
 LOGGING = {
     "version": 1,
