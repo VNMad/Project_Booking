@@ -1,4 +1,6 @@
 from django.db.models import Avg, Count, Q
+from django.core.exceptions import ValidationError as DjangoValidationError
+
 from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework import status, viewsets
 from rest_framework.exceptions import NotFound, PermissionDenied
@@ -46,7 +48,7 @@ class ListingStatisticsViewSet(viewsets.ViewSet):
         """
         try:
             listing = Listing.objects.get(pk=pk, is_active=True, deleted_at__isnull=True)
-        except Listing.DoesNotExist:
+        except (Listing.DoesNotExist, DjangoValidationError):
             raise NotFound("Listing not found.")
 
         statistics = Review.objects.filter(booking__listing=listing).aggregate(
@@ -82,7 +84,7 @@ class ListingStatisticsViewSet(viewsets.ViewSet):
         """
         try:
             listing = Listing.objects.get(pk=pk)
-        except Listing.DoesNotExist:
+        except (Listing.DoesNotExist, DjangoValidationError):
             raise NotFound("Listing not found.")
 
         if listing.owner_id != request.user.id:

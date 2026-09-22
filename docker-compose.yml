@@ -1,80 +1,62 @@
 services:
-  web:
-    build: .
-    container_name: booking_django
-    restart: always
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-    ports:
-      - "8000:8000"
-    depends_on:
-      - db
 
   db:
     image: mysql:8.4
     container_name: booking_db
-    restart: always
+    restart: unless-stopped
+
     env_file:
       - .env
+
     environment:
       MYSQL_DATABASE: ${MYSQL_NAME}
       MYSQL_USER: ${MYSQL_USER}
       MYSQL_PASSWORD: ${MYSQL_PASSWORD}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+
     volumes:
       - mysql_data:/var/lib/mysql
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "mysqladmin ping -h 127.0.0.1 -uroot -p\"$${MYSQL_ROOT_PASSWORD}\" --silent"
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 20s
+
+
+  web:
+    build:
+      context: .
+
+    image: project-booking-web:latest
+
+    container_name: booking_django
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    volumes:
+      - .:/app
+      - media_data:/app/media
+      - logs_data:/app/logs
+      - static_data:/app/static
+
     ports:
-      - "3306:3306"
+      - "8000:8000"
+
+    depends_on:
+      db:
+        condition: service_healthy
+
 
 volumes:
   mysql_data:
-
-
-##version: '3.8'
-#services:
-#  db_booking:
-#    image: mysql:8
-#    container_name: booking_db
-#    environment:
-#      MYSQL_DATABASE: ${MYSQL_NAME}
-#      MYSQL_USER: ${MYSQL_USER}
-#      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-#      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-#    ports:
-#      - "3306:3306"
-#    volumes:
-#      - ./db:/var/lib/mysql
-##      - /opt/homebrew/var/mysql/rental_mysqldb:/var/lib/mysql
-#
-#  web:
-#    build:
-#      dockerfile: Dockerfile
-#    container_name: booking_django
-#    ports:
-#      - "8000:8000"
-#    depends_on:
-#      - db_booking
-#    env_file:
-#      - .env
-#
-#volumes:
-#  data_base:
-#
-
-####_HTTPS_####
-#  acme-companion:
-#    image: nginxproxy/acme-companion
-#    container_name: nginx-proxy-acme
-#    environment:
-#      - NGINX_PROXY_CONTAINER=nginx-proxy
-#    volumes:
-#      - /var/run/docker.sock:/var/run/docker.sock:ro
-#      - ./acme:/etc/acme.sh
-#      - ./certs:/etc/nginx/certs
-#      - ./vhost:/etc/nginx/vhost.d
-#      - ./html:/usr/share/nginx/html
-#    restart: always
-#    networks:
-#      - webproxy
+  media_data:
+  logs_data:
+  static_data:
