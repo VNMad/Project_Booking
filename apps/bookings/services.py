@@ -33,11 +33,11 @@ def create_booking(*, tenant, listing_id, date_start, date_end):
     with transaction.atomic():
         listing = Listing.objects.select_for_update().get(pk=listing_id)
 
-        if not listing.is_active:
-            raise ValidationError(_("This listing is not active."))
-
         if listing.deleted_at is not None:
             raise ValidationError(_("This listing has been deleted."))
+
+        if not listing.is_active:
+            raise ValidationError(_("This listing is not active."))
 
         if listing.owner_id == tenant.id:
             raise ValidationError(_("You cannot book your own listing."))
